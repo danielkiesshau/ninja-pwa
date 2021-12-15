@@ -1,5 +1,6 @@
 // change staticCacheName's name to update cache
 const staticCacheName = 'site-static-v2'
+const dynamicCacheName = 'site-dynamic-cache'
 const assets = [
   '/',
   '/index.html',
@@ -10,7 +11,8 @@ const assets = [
   '/css/materialize.min.css',
   '/img/dish.png',
   'https://fonts.googleapis.com/icon?family=Material+Icons',
-  'https://fonts.gstatic.com/s/materialicons/v47/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2'
+  'https://fonts.gstatic.com/s/materialicons/v47/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2',
+  '/pages/fallback.html'
 ]
 
 self.addEventListener('install', function(event) {
@@ -20,7 +22,6 @@ self.addEventListener('install', function(event) {
       return cache.addAll(assets)
     })
   )
-
 })
 
 self.addEventListener('activate', function(event) {
@@ -28,7 +29,7 @@ self.addEventListener('activate', function(event) {
     caches.keys().then(function(keys) {
       return Promise.all(keys
         .filter(function(key) {
-          return key !== staticCacheName
+          return key !== staticCacheName && key !== dynamicCacheName
         })
         .map(function(key) {
           console.log('deleting cache', key)
@@ -42,7 +43,19 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request).then(function(res) {
-      return res || fetch(event.request)
+      return res || fetch(event.request).then(function(res) {
+        return caches.open(dynamicCacheName).then(function(cache) {
+          cache.put(event.request.url, res.clone())
+          return res
+        })
+      })
+    }).catch(function(err) {
+      const fallBackForHTML = event.request.url.indexOf('.html') > -1;
+
+      if (fallBackForHTML)
+        return caches.match('/pages/fallback.html')
+      
+      
     })
   )
 })
