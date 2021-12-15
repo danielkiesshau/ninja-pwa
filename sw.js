@@ -15,6 +15,16 @@ const assets = [
   '/pages/fallback.html'
 ]
 
+const limitCacheSize = (name, size) => { 
+  caches.open(name).then(cache => {
+      caches.keys().then(keys => {
+        if(keys.length > size){
+          cache.delete(keys[0]).then(limitCacheSize(name, size))
+        }
+    })
+  })
+}
+
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(staticCacheName).then(function(cache) {
@@ -46,6 +56,7 @@ self.addEventListener('fetch', function(event) {
       return res || fetch(event.request).then(function(res) {
         return caches.open(dynamicCacheName).then(function(cache) {
           cache.put(event.request.url, res.clone())
+          limitCacheSize(dynamicCacheName, 15)
           return res
         })
       })
