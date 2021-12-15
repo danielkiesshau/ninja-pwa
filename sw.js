@@ -1,6 +1,6 @@
 // change staticCacheName's name to update cache
 const staticCacheName = 'site-static-v2'
-const dynamicCacheName = 'site-dynamic-cache'
+const dynamicCacheName = 'site-dynamic-cache-v3'
 const assets = [
   '/',
   '/index.html',
@@ -51,22 +51,22 @@ self.addEventListener('activate', function(event) {
 })
 
 self.addEventListener('fetch', function(event) {
-  event.respondWith(
-    caches.match(event.request).then(function(res) {
-      return res || fetch(event.request).then(function(res) {
-        return caches.open(dynamicCacheName).then(function(cache) {
-          cache.put(event.request.url, res.clone())
-          limitCacheSize(dynamicCacheName, 15)
-          return res
+  if(event.request.url.indexOf('firestore.googleapis.com') !== -1) { 
+    event.respondWith(
+      caches.match(event.request).then(function(res) {
+        return res || fetch(event.request).then(function(res) {
+          return caches.open(dynamicCacheName).then(function(cache) {
+            cache.put(event.request.url, res.clone())
+            limitCacheSize(dynamicCacheName, 15)
+            return res
+          })
         })
-      })
-    }).catch(function(err) {
-      const fallBackForHTML = event.request.url.indexOf('.html') > -1;
+      }).catch(function(err) {
+        const fallBackForHTML = event.request.url.indexOf('.html') > -1;
 
-      if (fallBackForHTML)
-        return caches.match('/pages/fallback.html')
-      
-      
-    })
-  )
+        if (fallBackForHTML)
+          return caches.match('/pages/fallback.html')
+      })
+    )
+  }
 })
